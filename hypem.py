@@ -7,18 +7,17 @@ from bs4 import BeautifulSoup
 HYPE_URL = 'http://www.hypem.com/'
 user = 'kenanM'
 
-def tracks(user):
+def tracks(user, page_limit=1):
     # Iterates through every track in a HypeMachine users account
     url = 'http://www.hypem.com/%s' % user
     while True:
         response = requests.get(url)
-        doc = BeautifulSoup(response.content)
-        data = doc.find(id='displayList-data')
-        contents = json.loads(data.contents[0])
-        for track in contents['tracks']:
+        data = BeautifulSoup(response.content).find(id='displayList-data')
+        data = json.loads(data.contents[0])
+        for track in data['tracks']:
             yield track
-        if 'page_next' in contents:
-            url = 'http://www.hypem.com%s' % contents['page_next']
+        if 'page_next' in data and data['page_num'] < page_limit:
+            url = 'http://www.hypem.com%s' % data['page_next']
         else:
             break
 
