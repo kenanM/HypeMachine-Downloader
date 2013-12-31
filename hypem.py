@@ -7,11 +7,10 @@ import os
 import string
 
 HYPE_URL = 'http://www.hypem.com/'
-ALLOWED_CHARACTERS = '-_.() %s%s' % (string.ascii_letters, string.digits)
-
+ALLOWED_CHARACTERS = '-_() %s%s' % (string.ascii_letters, string.digits)
 
 user = 'kenanM'
-DOWNLOAD_FOLDER = '/home/kenan/Media/Music'
+DOWNLOAD_FOLDER = '/home/kenan/Media/Music/hypem/'
 
 def tracks(user, page_limit=1):
     # Iterates through every track in a HypeMachine users account
@@ -21,24 +20,37 @@ def tracks(user, page_limit=1):
         data = BeautifulSoup(response.content).find(id='displayList-data')
         data = json.loads(data.contents[0])
         for track in data['tracks']:
+            track['cookie'] = response.cookies
             yield track
-        if 'page_next' in data and data['page_num'] < page_limit:
+        if 'page_next' in data or data['page_num'] < page_limit:
             url = 'http://www.hypem.com%s' % data['page_next']
         else:
             break
 
 def clean_file_name(string):
+    string = string.encode('ascii', 'ignore')
     return ''.join(c for c in string if c in ALLOWED_CHARACTERS)
 
 def generate_file_name(track):
-    artist = track['artist'].encode('ascii', 'ignore')
-    song = track['song'].encode('ascii', 'ignore')
-    return '%s - %s.mp3' % (artist, song)
+    artist = track['artist']
+    song = track['song']
+    file_name = '%s - %s' % (artist, song)
+    return '%s.mp3' % clean_file_name(file_name)
 
 def get_mp3_link(track):
-    pass
+    url = "http://hypem.com/serve/source/%s/%s" % (track['id'], track['key'])
+    response = requests.get(url, cookies=track['cookie']).json()
+    return response['url']
 
-for track in tracks(user):
+def download_mp3(url, download_location):
+    response = requests.get(url)
+    with open(download_location, "wb") as _file:
+        for chunk in response.iter_content(1024):
+            if not chunk:
+                break
+            _file.write(chunk)
+
+for track in tracks(user, 1000):
     if track['type'] is False:
         print 'Skipping %s as it is no longer available' % file_name
         continue
@@ -49,5 +61,5 @@ for track in tracks(user):
         continue
 
     mp3_link = get_mp3_link(track)
-
-    #download the mp3
+    print 'Downloading %s' % file_name
+    download_mp3(mp3_link, '%s/%s' % (DOWNLOAD_FOLDER, file_name))
