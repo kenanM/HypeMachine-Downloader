@@ -1,23 +1,22 @@
 #download Hypem playlists
 
+import argparse
 from bs4 import BeautifulSoup
 import requests
 import json
 import os
 import string
+import sys
 
 ALLOWED_CHARACTERS = '-_() %s%s' % (string.ascii_letters, string.digits)
 
-user = 'kenanM'
-DOWNLOAD_FOLDER = '/home/kenan/Media/Music/hypem/'
-
 class HypeDownloader:
 
-    def init(self, user, download_folder):
+    def __init__(self, user, download_folder):
         self.user = user
         self.download_folder = download_folder
 
-    def _tracks(self, user, page_limit=1):
+    def _tracks(self, user, page_limit):
         # Iterates through every track in a HypeMachine users account
         url = 'http://www.hypem.com/%s' % user
         while True:
@@ -43,6 +42,7 @@ class HypeDownloader:
         return '%s.mp3' % self._clean_file_name(file_name)
 
     def _get_mp3_link(self, track):
+        # Use the track Id and key to get the mp3 download link from the hypem api
         url = "http://hypem.com/serve/source/%s/%s" % (track['id'], track['key'])
         response = requests.get(url, cookies=track['cookie']).json()
         return response['url']
@@ -56,19 +56,30 @@ class HypeDownloader:
                 _file.write(chunk)
 
     def run(self, page_limit):
-        for track in self._tracks(user, 1000):
+        for track in self._tracks(self.user, page_limit):
             if track['type'] is False:
                 print 'Skipping %s as it is no longer available' % file_name
                 continue
 
             file_name = self._generate_file_name(track)
-            if file_name in os.listdir(DOWNLOAD_FOLDER):
+            if file_name in os.listdir(self.download_folder):
                 print 'Skipping %s as it has already been downloaded' % file_name
                 continue
 
             mp3_link = self._get_mp3_link(track)
             print 'Downloading %s' % file_name
-            self._download_mp3(mp3_link, '%s/%s' % (DOWNLOAD_FOLDER, file_name))
+            self._download_mp3(mp3_link, '%s/%s' % (self.download_folder, file_name))
 
 if __name__ == "__main__":
-    HypeDownloader(user, download_folder).run(page_limit)
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        'user', type=str, help='The user whose playlist you want to download')
+    parser.add_argument(
+        '--dir', type=str, default=os.getcwd(), nargs='?',
+        help='The folder you want to download the tracks into')
+    parser.add_argument(
+        '--limit', type=int, default=100,
+        help='The number of pages you want to download')
+
+    args = parser.parse_args()
+    HypeDownloader(args.user, args.dir).run(args.limit)
