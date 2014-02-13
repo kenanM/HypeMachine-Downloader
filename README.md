@@ -8,16 +8,16 @@ BeautifulSoup 4
 requests  
 
 ###Installation  
-    pip install requirements.txt
+    pip install -r requirements.txt
 
-###Simple  
+###Simple Usage  
     python hypem.py USER_NAME
 
-Will download all the music in your favourites to the current working directory.
+Will download all your favourited music to the current working directory.
 
 ###Optional Arguments
---dir The directory you'd like to download to.  
+--dir The directory you'd like to download into.  
 
---limit The number of pages youd like to download (each page has 20 tracks). You might use this if you only want to download your most recently favourited music.  
+--limit The number of pages you'd like to download (each page has 20 tracks). You might use this if you only want to download your most recently favourited music.  
 
 Enjoy!
